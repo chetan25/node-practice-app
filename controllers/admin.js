@@ -40,6 +40,22 @@ exports.postAddProduct = (req, res, next) => {
         })
         .catch(err => {
             console.log(err);
+            // solution to render the same page
+            // return res.status(500).render('admin/edit-product', {
+            //     pageTitle: 'Add Product',
+            //     path: '/admin/add-product',
+            //     editing: false,
+            //     hasError: true,
+            //     errorMessage: 'An Error occurred'
+            // });
+
+           // res.redirect('/500');
+            const error = new Error(err);
+            error.httpStatusCode = 500;
+            // this will trigger the express error handling middleware
+            // next is used for all async code/callback (promise, then, catch) errors
+            // throwing error there won't call express middleware
+            next(error);
         })
 };
 

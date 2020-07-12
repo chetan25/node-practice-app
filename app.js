@@ -53,12 +53,23 @@ app.use(session({
 app.use(csrfProtection);
 app.use(flash());
 
+// this is adding the common values to every request
+app.use((req, res, next) => {
+    res.locals.isAuthenticated = req.session.isLoggedIn;
+    res.locals.csrfToken = req.csrfToken();
+
+    next();
+});
+
 app.use((req, res, next) => {
     if (!req.session.user) {
         return next();
     }
     User.findById(req.session.user._id)
         .then(user => {
+            if (!user) {
+                return next();
+            }
             console.log('user');
             // req.user = new User(user.name, user.email, user.cart, user._id);
 
@@ -66,17 +77,13 @@ app.use((req, res, next) => {
             req.user = user;
             next();
         })
-        .catch(err => console.log(err));
+        .catch(err => {
+            console.log(err);
+            throw new Error(err);
+        });
     // next();
 });
 
-// this is adding the common values to every request
-app.use((req, res, next) => {
-   res.locals.isAuthenticated = req.session.isLoggedIn;
-   res.locals.csrfToken = req.csrfToken();
-
-   next();
-});
 // adding routes middleware
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
@@ -86,7 +93,17 @@ app.use(authRoutes);
 // app.use((req, res) => {
 //    res.status(404).sendFile(path.join(__dirname, 'views', '404.html'));
 // });
+
+app.get('/500', errorController.get500);
+
 app.use(errorController.get404);
+
+
+app.use((error, req, res, next) => {
+    res.redirect('/500');
+});
+
+
 // setting server
 // app.listen(3000);
 

@@ -37,13 +37,30 @@ exports.postLogin = (req, res) => {
     User.findOne({email: email})
         .then(user => {
             if (!user) {
-                req.flash('error', 'Invalid Email or Password.');
-                return res.redirect('/login');
+                // req.flash('error', 'Invalid Email or Password.');
+                // return res.redirect('/login');
+                return res.status(422).render('auth/login', {
+                    path: '/login',
+                    pageTitle: 'Login',
+                    errorMessage: 'Invalid Email or Password.',
+                    oldInput: {
+                        email: email,
+                        password: password
+                    }
+                });
             }
             bcrypt.compare(password, user.password)
                 .then(doMatch => {
                     if(!doMatch) {
-                        return res.redirect('/login');
+                        return res.status(422).render('auth/login', {
+                            path: '/login',
+                            pageTitle: 'Login',
+                            errorMessage: 'Invalid Password',
+                            oldInput: {
+                                email: email,
+                                password: password
+                            }
+                        });
                     }
                     req.session.isLoggedIn = true;
                     req.session.user = user;
@@ -73,45 +90,58 @@ exports.postSignup = (req, res, next) => {
     const password = req.body.password;
     const confirmPassword = req.body.confirmPassword;
     const errors = validationResult(req);
-    if (password !== confirmPassword || !errors.isEmpty()) {
+    if (!errors.isEmpty()) {
+        console.log(errors.array());
         return res.status(422).render('auth/signup', {
             path: '/signup',
             pageTitle: 'Signup',
-            errorMessage: errors.array()[0].msg
+            errorMessage: errors.array()[0].msg,
+            oldInput: {
+              email: email,
+              password: password,
+              confirmPassword: confirmPassword
+            }
         });
     }
-    User.findOne({email: email})
-        .then(userDoc => {
-            if (userDoc) {
-                return res.redirect('/')
-            }
-            return bcrypt.hash(password, 12)
-                .then(hashPassword => {
-                    const user = new User({
-                        email: email,
-                        password: hashPassword,
-                        cart: {items: []}
-                    });
-                    return user.save();
-                })
-                .then(() => {
-                    res.redirect('/login');
-                    // returns a promise
-                    return transport.sendMail({
-                       to: email,
-                       from: 'chetandasauni25@gmail.com',
-                       subject: 'Signup Completed',
-                       html: '<h1>You successfully signed up</h1>'
-                    });
-                });
+    bcrypt
+        .hash(password, 12)
+        .then(hashPassword => {
+            const user = new User({
+                email: email,
+                password: hashPassword,
+                cart: {items: []}
+            });
+            return user.save();
+        })
+        .then(() => {
+            res.redirect('/login');
+            // returns a promise
+            return transport.sendMail({
+                to: email,
+                from: 'chetandasauni25@gmail.com',
+                subject: 'Signup Completed',
+                html: '<h1>You successfully signed up</h1>'
+            });
         })
         .catch(err => console.log(err))
 };
 
 exports.getSignup = (req, res, next) => {
+    let message = req.flash('error');
+    if (message.length > 0) {
+        message = message[0];
+    } else {
+        message = null;
+    }
     res.render('auth/signup', {
         path: '/signup',
-        pageTitle: 'Signup'
+        pageTitle: 'Signup',
+        errorMessage: message,
+        oldInput: {
+            email: '',
+            password: '',
+            confirmPassword: ''
+        }
     });
 };
 

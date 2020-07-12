@@ -228,15 +228,16 @@ form {
 .user-message {
   margin: auto;
   width: 90%;
-  border: 1px solid blue;
-  background: blue;
-  padding: 1rem;
+  border: 1px solid #4771fa;
+  padding: 0.5rem;
   border-radius: 3px;
+  background: #b9c9ff;
   text-align: center;
 }
+
 .user-message--error {
   border-color: red;
-  background: red;
+  background: rgb(255, 176, 176);
   color: red;
   padding: 0.5rem;
 }
