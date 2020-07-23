@@ -1,5 +1,6 @@
 // const Product = require('../mongo-models/product');
 const Product = require('../models/product');
+const file = require('../util/file');
 
 exports.getAddProduct = (req, res, next) => {
   res.render('admin/edit-product', {
@@ -11,10 +12,27 @@ exports.getAddProduct = (req, res, next) => {
 
 exports.postAddProduct = (req, res, next) => {
   const title = req.body.title;
-  const imageUrl = req.body.imageUrl;
+  // const imageUrl = req.body.imageUrl;
+  const image = req.file;
   const price = req.body.price;
   const description = req.body.description;
   const userId = req.user._id;
+  if (!image) {
+      return res.status(422)
+          .render('admin/edit-product', {
+              pageTitle: 'Add Product',
+              path: '/admin/add-product',
+              editing: false,
+              hasError: true,
+              product: {
+                  title: title,
+                  price: price,
+                  description: description
+              },
+              errorMessage: 'Attached file is not allowed'
+          })
+  }
+  const imageUrl = image.path;
 
   // Mongo manual
   // const product = new Product(title, price, description, imageUrl, null, userId);
@@ -131,7 +149,8 @@ exports.getProducts = (req, res, next) => {
 exports.postEditProduct = (req, res, next) => {
     const prodId = req.body.productId;
     const title = req.body.title;
-    const imageUrl = req.body.imageUrl;
+    // const imageUrl = req.body.imageUrl;
+    const image = req.file;
     const price = req.body.price;
     const description = req.body.description;
     // const userId = req.user._id;
@@ -142,9 +161,12 @@ exports.postEditProduct = (req, res, next) => {
             if (product.userId.toString() !== req.user._id.toString()) {
                 return res.redirect('/');
             }
+            if (image) {
+                file.deleteFile(product.imageUrl);
+                product.imageUrl  = image.path;
+            }
             // product is a mongoose object
             product.title = title;
-            product.imageUrl = imageUrl;
             product.description = description;
             product.price = price;
 
@@ -173,8 +195,31 @@ exports.postEditProduct = (req, res, next) => {
     //     })
 };
 
-exports.deleteProduct = (req, res) => {
-    const prodId = req.body.productId;
+exports.deleteProduct = (req, res, next) => {
+    const prodId = req.params.productId;
+    Product.findById(prodId)
+        .then(product => {
+            if(!product) {
+                return new Error('Product not found');
+            }
+            file.deleteFile(product.imageUrl);
+            return Product.deleteOne({_id: prodId, userId: req.user._id});
+        })
+        .then(() => {
+            // res.redirect('/admin/products');
+            res.status(200).json({
+                "message": "Success"
+            });
+        })
+        .catch(err => {
+            res.status(500).json({
+                "message": "Deleting Product Failed"
+            });
+            // const error = new Error(err);
+            // error.httpStatusCode = 500;
+            // console.log('error in deleting');
+            // return next(error);
+        });
     // Product.deleteById(prodId)
     //     .then(() => {
     //         res.redirect('/admin/products');
@@ -182,11 +227,5 @@ exports.deleteProduct = (req, res) => {
     //     .catch(err => {
     //         console.log('error in deleting');
     //     });
-    Product.deleteOne({_id: prodId, userId: req.user._id})
-        .then(() => {
-            res.redirect('/admin/products');
-        })
-        .catch(err => {
-            console.log('error in deleting');
-        });
+
 }

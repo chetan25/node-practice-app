@@ -1,6 +1,7 @@
 // const routes = require('./routes');
 const express = require('express');
 const bodyParser = require('body-parser');
+const multer = require('multer');
 const path = require('path');
 const session = require('express-session');
 const MongoDbStore = require('connect-mongodb-session')(session);
@@ -41,8 +42,37 @@ app.set('views', 'views');
 //     next();//this allows request to continue to next middleware in line
 // });
 
+const fileStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'images');
+    },
+    filename: (req, file, cb) => {
+        // colon will complain since in windows, un-valid character in the resulting filename.
+        cb(null, new Date().toISOString().replace(/:/g, '-') + '-' + file.originalname);
+    }
+});
+
+const fileFilter = (req, file, cb) => {
+  // cb(null, boolean)
+  if (
+      file.mimetype === 'image/png' ||
+      file.mimetype === 'image/jpg' ||
+      file.mimetype === 'image/jpeg'
+  ) {
+      cb(null, true);
+  } else {
+    cb(null, false);
+  }
+};
 app.use(bodyParser.urlencoded({extended:  false}));
+app.use(
+    multer({ storage: fileStorage, fileFilter: fileFilter }).single('image')
+);
+// this will take every thing in public folder and serve it from root directory. eg /css
 app.use(express.static(path.join(__dirname, 'public')));
+
+// this will serve the request for the '/images' path and serve the content of images folder statically
+app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use(session({
     secret: 'my secret key',
     resave: false,
@@ -70,7 +100,7 @@ app.use((req, res, next) => {
             if (!user) {
                 return next();
             }
-            console.log('user');
+            // console.log(user, 'user');
             // req.user = new User(user.name, user.email, user.cart, user._id);
 
             // mongoose model
@@ -78,8 +108,8 @@ app.use((req, res, next) => {
             next();
         })
         .catch(err => {
-            console.log(err);
-            throw new Error(err);
+            console.log(err, 'err');
+            next(new Error(err));
         });
     // next();
 });
@@ -100,7 +130,12 @@ app.use(errorController.get404);
 
 
 app.use((error, req, res, next) => {
-    res.redirect('/500');
+    console.log(error, 'error');
+    res.status(500).render('500', {
+        pageTitle: 'Error!',
+        path: '/500',
+        isAuthenticated: req.session.isLoggedIn
+    });
 });
 
 
@@ -129,3 +164,5 @@ mongoose.connect(mongodbUri)
     .catch(err => {
         console.log('Error connecting to DB', err);
     });
+
+console.log('');
