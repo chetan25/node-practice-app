@@ -19,4 +19,4 @@ jobs:
         id: hello
       # This step print time
       - name: Echo the greeting time
-        run: echo 'The time was ${{ step.hello.outputs.time }}. '
+        run: echo 'The time was ${{ steps.hello.outputs.time }}.'
