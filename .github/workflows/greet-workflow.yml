@@ -1,6 +1,9 @@
 name: Greet Everyone
 # This workflow is triggered on pushes to the repo
-on: [push]
+on:
+  push:
+    branches:
+      - master
 
 # contains set of steps that perform individual task
 # Step can run command or use an action
