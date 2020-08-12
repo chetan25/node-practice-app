@@ -1,0 +1,22 @@
+name: Greet Everyone
+# This workflow is triggered on pushes to the repo
+on: [push]
+
+# contains set of steps that perform individual task
+# Step can run command or use an action
+jobs:
+  build:
+    # Job name is greeting
+    name: Greeting
+    # This job runs on linux
+    runs-on: ubuntu-latest
+    steps:
+      # This step uses Github hello-world action
+      - name: Hello world
+        uses: actions/hello-world-javascript-action@v1
+        with:
+          who-to-greet: 'Chetan'
+        id: hello
+      # This step print time
+      - name: Echo the greeting time
+        run: echo 'The time was ${{ step.hello.outputs.time }}. '
